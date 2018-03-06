@@ -1,0 +1,15 @@
+---
+- hosts: satellite_server
+  become: true
+  vars_files:
+    - "group_vars/satellite"
+    - "group_vars/vault"
+  roles:
+  - satellite-server-subscribe
+  - satellite-server-filesystems
+  - satellite-server-install
+  - satellite-server-repos
+  - satellite-server-epel
+  - satellite-server-docker-repos
+  - satellite-server-syncplan
+  - satellite-server-config

@@ -1,0 +1,141 @@
+---
+
+- name: "SATELLITE | configure | install virt-who"
+  yum:
+    name: virt-who
+    state: present
+  when: satellite_install_virtwho
+  tags:
+    - satellite_config
+    - virtwho
+
+- name: "SATELLITE | configure | copy over our virt-who configuration file"
+  template:
+    src: virt-who.j2
+  when: satellite_install_virtwho
+  tags:
+    - satellite_config
+    - virtwho
+  notify: restart virt-who
+
+- name: "SATELLITE | configure | start and enable virt-who"
+  service:
+    name: virt-who
+    state: started
+    enabled: yes
+  when: satellite_install_virtwho
+  tags:
+    - satellite_config
+    - virtwho
+
+- name: "SATELLITE | configure | grab a list of environments"
+  shell: "hammer lifecycle-environment list --organization {{ satellite_deployment_organization }}"
+  register: lifecycle_env_list
+  changed_when: false
+  tags:
+    - satellite_config
+    - environments
+
+- name: "SATELLITE | configure | create environments"
+  shell: "hammer lifecycle-environment create --name {{ item.env_name }}
+     --label {{ item.env_label }} --prior {{ item.env_prior }}
+    --organization {{ satellite_deployment_organization }}"
+  with_items: "{{ satellite_environments }}"
+  when: item.env_name not in lifecycle_env_list.stdout
+  tags:
+    - satellite_config
+    - environments
+
+- name: "SATELLITE | configure | grab a list of content views"
+  shell: "hammer content-view list --organization {{ satellite_deployment_organization }}"
+  register: cv_list
+  changed_when: false
+  tags:
+    - satellite_config
+    - content_views
+
+- name: "SATELLITE | configure | create content views"
+  shell: "hammer content-view create --name {{ item.cv_name }} --organization {{ satellite_deployment_organization }}"
+  with_items: "{{ satellite_content_views }}"
+  when: item.cv_name not in cv_list.stdout
+  tags:
+    - satellite_config
+    - content_views
+
+- name: "SATELLITE | configure | add repositories to content views"
+  shell: "hammer content-view add-repository --name {{ item.0.cv_name }}
+    --organization {{ satellite_deployment_organization }} --product '{{ item.1.product }}'
+    --repository '{{ item.1.name }}'"
+  with_subelements:
+    - "{{ satellite_content_views }}"
+    - repositories
+  tags:
+    - satellite_config
+    - content_views
+
+- name: "SATELLITE | configure | grab existing host collections"
+  shell: "hammer host-collection list --organization {{ satellite_deployment_organization }}"
+  changed_when: false
+  register: host_collection_list
+  tags:
+    - satellite_config
+    - host_collections
+
+- name: "SATELLITE | configure | create host collections"
+  shell: "hammer host-collection create --name {{ item.hc_name }}
+    --organization {{ satellite_deployment_organization }}"
+  with_items: "{{ satellite_host_collections }}"
+  when: item.hc_name not in host_collection_list.stdout
+  tags:
+    - satellite_config
+    - host_collections
+
+- debug: msg="You will need to do a manual sync and publish/promote of content views. Things will all fail from here on out if you have not done that. Just run the playbook again once you have done the sync and publish/promote."
+  tags:
+    - satellite_config
+    - access_keys
+
+- name: "SATELLITE | configure | grab existing access keys"
+  shell: "hammer activation-key list --organization {{ satellite_deployment_organization }}"
+  changed_when: false
+  register: activation_key_list
+  tags:
+    - satellite_config
+    - access_keys
+
+- name: "SATELLITE | configure | create access keys"
+  shell: "hammer activation-key create --name {{ item.key_name }}
+    --organization {{ satellite_deployment_organization }} --content-view {{ item.key_cv }}
+    --lifecycle-environment {{ item.key_lifecycle }}"
+  with_items: "{{ satellite_access_keys }}"
+  when: item.key_name not in activation_key_list.stdout
+  tags:
+    - satellite_config
+    - access_keys
+
+- name: "SATELLITE | configure | add host collection to access keys"
+  shell: "hammer activation-key add-host-collection --host-collection {{ item.key_host_collection }}
+    --name {{ item.key_name }} --organization {{ satellite_deployment_organization }}"
+  with_items: "{{ satellite_access_keys }}"
+  tags:
+    - satellite_config
+    - access_keys
+
+- name: "SATELLITE | congigure | grab a list of subscriptions by id"
+  shell: "hammer --csv subscription list --organization {{ satellite_deployment_organization }} |awk -F , '{print $1}' |grep -v ID"
+  changed_when: false
+  register: sub_id_list
+  tags:
+    - satellite_config
+    - access_keys
+
+- name: SATELLITE | configure | add subscriptions to access keys"
+  shell: "hammer activation-key add-subscription --name {{ item[0].key_name }}
+    --organization {{ satellite_deployment_organization }} --subscription-id {{ item[1] }}"
+  failed_when: false
+  with_nested:
+    - "{{ satellite_access_keys }}"
+    - "{{ sub_id_list.stdout_lines }}"
+  tags:
+    - satellite_config
+    - access_keys

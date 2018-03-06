@@ -1,0 +1,41 @@
+---
+
+- hosts: satellite_server,satellite_capsules
+  gather_facts: true
+
+- hosts: satellite_server
+  become: true
+  gather_facts: false
+  roles:
+    - satellite-server-gencerts
+
+- hosts: satellite_capsules
+  become: true
+  vars_files:
+    - "group_vars/satellite"
+    - "group_vars/capsule"
+    - "group_vars/vault"
+  roles:
+    - satellite-capsule-subscribe
+    - satellite-capsule-filesystems
+    - satellite-capsule-install
+    - satellite-capsule-config
+
+- hosts: satellite_server
+  vars_files:
+    - "group_vars/capsule"
+  become: true
+  gather_facts: false
+  roles:
+    - satellite-server-addcapsule
+
+- hosts: capsule-pri,capsule-sec
+  become: true
+  vars:
+    - router_id: 100
+    - vip_address: 192.168.122.60
+    - vip_fqdn: capsule.nat
+    - primary_capsule: capsule-pri # This is the {{ ansible_hostname }}
+    - standby_capsule: capsule-sec # This is the {{ ansible_hostname }}
+  roles:
+    - satellite-capsule-keepalived

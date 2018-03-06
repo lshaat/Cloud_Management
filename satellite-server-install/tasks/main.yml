@@ -1,0 +1,123 @@
+---
+
+- name: SATELLITE | pre-install |Put the Satellite FQDN in /etc/hosts
+  lineinfile:
+    line: "{{ ansible_eth0.ipv4.address }} {{ facter_fqdn }} {{ ansible_hostname }}"
+    state: present
+    path: /etc/hosts
+  tags:
+    - etc_hosts
+    - satellite_pre_inst
+
+- name: SATELLITE | pre-install | Install Firewalld
+  yum:
+    name: firewalld
+    state: present
+  tags:
+    - firewalld
+    - satellite_pre_inst
+  when: satellite_configure_firewall
+
+- name: SATELLITE | pre-install | Enable and Start Firewalld
+  service:
+    name: firewalld
+    enabled: yes
+    state: stopped
+  tags:
+    - firewalld
+    - satellite_pre_inst
+  when: satellite_configure_firewall
+
+- name: SATELLITE | pre-install | Enable ports in firewall
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+  with_items:
+    - "{{ firewall_ports }}"
+  tags:
+    - firewalld
+    - satellite_pre_inst
+  when: satellite_configure_firewall
+
+- name: SATELLITE | pre-install | Enable service in firewall
+  firewalld:
+    service: "{{ item }}"
+    permanent: yes
+    state: enabled
+  with_items:
+    - "{{ firewall_services }}"
+  tags:
+    - firewalld
+    - satellite_pre_inst
+  when: satellite_configure_firewall
+
+- name: SATELLITE | install | Install yum packages
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "{{ package_list }}"
+  tags:
+    - install_packages
+
+- name: SATELLITE | install | Create satellite answers file
+  template:
+    src: satellite-answers.j2
+    dest: /etc/foreman-installer/scenarios.d/satellite-answers.yaml
+    owner: root
+    group: root
+    mode: 0644
+  tags:
+    - satellite_install
+
+- name: SATELLITE | install | Install Satellite
+  command: /usr/sbin/satellite-installer --scenario satellite
+  tags:
+    - install_satellite
+
+- name: "SATELLITE | post-install | create .hammer directory on user"
+  file:
+    path: "~/.hammer"
+    state: "directory"
+    mode: "0755"
+  tags:
+    - satellite_post_inst
+
+- name: "SATELLITE | post-install | set configuration for hammer from template"
+  template:
+    src: "hammer_config.yml.j2"
+    dest: "~/.hammer/cli_config.yml"
+  tags:
+    - satellite_post_inst
+
+- name: "SATELLITE | post-install | grab a list of locations"
+  shell: "hammer location list"
+  changed_when: false
+  register: sat_loc_list
+  tags:
+    - satellite_post_inst
+    - location_creation
+
+- name: "SATELLITE | post-install | create additional locations"
+  shell: "hammer location create --name {{ item.loc_name }}"
+  with_items: "{{ satellite_locations }}"
+  when: item.loc_name not in sat_loc_list.stdout
+  tags:
+    - satellite_post_inst
+    - location_creation
+
+- name: "SATELLITE | post-install | copy manifest"
+  copy:
+    src: "{{ satellite_deployment_manifest_path }}"
+    dest: "{{ satellite_deployment_manifest_dest_path }}"
+  tags:
+    - satellite_post_inst
+    - manifest
+- name: "SATELLITE | post-install | upload the manifest"
+  shell: "hammer subscription upload --file
+    {{ satellite_deployment_manifest_dest_path }} --organization
+    {{ satellite_deployment_organization }}"
+  tags:
+    - satellite_post_inst
+    - manifest

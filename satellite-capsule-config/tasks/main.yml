@@ -1,0 +1,39 @@
+---
+
+- set_fact: satellite_server={{ hostvars[groups['satellite_server'][0]]['ansible_fqdn']}}
+  tags:
+    - capsule_config
+
+- name: CAPSULE | pre-install |Put the Satellite FQDN in /etc/hosts
+  lineinfile:
+    line: "{{ ansible_eth0.ipv4.address }} {{ facter_fqdn }} {{ ansible_hostname }}"
+    state: present
+    path: /etc/hosts
+  tags:
+    - etc_hosts
+    - capsule_config
+
+- name: CAPSULE | config | copy the cert file over
+  copy:
+    src: "/tmp/{{ ansible_fqdn }}-certs.tar"
+    dest: "/tmp/{{ ansible_fqdn }}-certs.tar"
+  tags:
+    - capsule_config
+
+- name: CAPSULE | config | run the satellite installer against the capsule
+  shell: "satellite-installer --scenario capsule --capsule-parent-fqdn {{ satellite_server }}
+     --foreman-proxy-register-in-foreman true
+     --foreman-proxy-foreman-base-url https://{{ satellite_server }}
+     --foreman-proxy-trusted-hosts {{ satellite_server }}
+     --foreman-proxy-trusted-hosts {{ ansible_fqdn }}
+     --foreman-proxy-oauth-consumer-key {{ oauth_consumer_key }}
+     --foreman-proxy-oauth-consumer-secret {{ oauth_consumer_secret }}
+     --capsule-pulp-oauth-secret {{ oauth_secret }}
+     --capsule-certs-tar /tmp/{{ ansible_fqdn }}-certs.tar"
+  tags:
+    - capsule_config
+
+- name: CAPSULE | config | configure the capsule for remote execution
+  shell: satellite-installer --scenario capsule --enable-foreman-proxy-plugin-remote-execution-ssh
+  tags:
+    - capsule_config

@@ -1,0 +1,40 @@
+---
+
+- name: CAPSULE | keepalived | Stop if we dont have the required variables
+  fail:
+    msg: Computer says no. This role needs 'vrrp_state', 'vip_address', 'router_id', 'primary_capsule' and 'standby_capsule' vars to be set.
+  when: >
+      ( vrrp_state is undefined )
+      or ( vip_address is undefined )
+      or ( router_id is undefined )
+      or ( primary_capsule is undefined )
+      or ( standby_capsule is undefined )
+  tags:
+    - capsule
+    - keepalived
+
+- name: CAPSULE | keepalived | make sure keepalived is installed
+  yum:
+    name: keepalived
+    state: installed
+  tags:
+   - capsule
+   - keepalived
+
+- name: CAPSULE | keepalived | copy over our keepalived.conf
+  template:
+    src: "keepalived.conf.j2"
+    dest: /etc/keepalived/keepalived.conf
+  notify: restart keepalived
+  tags:
+   - capsule
+   - keepalived
+
+- name: CAPSULE | keepalived | start and enable keepalived
+  service:
+    name: keepalived
+    state: started
+    enabled: yes
+  tags:
+   - capsule
+   - keepalived

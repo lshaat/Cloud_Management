@@ -1,0 +1,55 @@
+---
+
+- name: CAPSULE | pre-install | Install Firewalld
+  yum:
+    name: firewalld
+    state: present
+  tags:
+    - firewalld
+    - capsule_pre_inst
+  when: satellite_configure_firewall
+
+- name: CAPSULE | pre-install | Enable and Start Firewalld
+  service:
+    name: firewalld
+    enabled: yes
+    state: stopped
+  tags:
+    - firewalld
+    - capsule_pre_inst
+
+  when: satellite_configure_firewall
+
+- name: CAPSULE | pre-install | Enable ports in firewall
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+  with_items:
+    - "{{ firewall_ports }}"
+  tags:
+    - firewalld
+    - capsule_pre_inst
+  when: satellite_configure_firewall
+
+- name: CAPSULE | pre-install | Enable service in firewall
+  firewalld:
+    service: "{{ item }}"
+    permanent: yes
+    state: enabled
+  with_items:
+    - "{{ firewall_services }}"
+  tags:
+    - firewalld
+    - capsule_pre_inst
+  when: satellite_configure_firewall
+
+- name: CAPSULE | install | Install yum packages
+  yum:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "{{ package_list }}"
+  tags:
+    - capsule_install
+    - install_packages

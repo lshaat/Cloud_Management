@@ -1,0 +1,37 @@
+
+---
+- name: SATELLITE | add capsules | update the configuration of the capsules
+  shell: "hammer capsule update --name {{ item.capsule_name }} --locations {{ item.capsule_loc }} --organizations {{ item.capsule_org }}"
+  with_items: "{{ capsule_servers }}"
+  tags:
+    - add_capsule
+    - satellite_config
+
+- name: SATELLITE | add capsules | grab a list of lifecycle environments
+  shell: "hammer capsule content lifecycle-environments --name {{ item.capsule_name }}"
+  changed_when: false
+  register: capsule_lifecycle_list
+  with_items: "{{ capsule_servers }}"
+  tags:
+    - add_capsule
+    - satellite_config
+    
+- name: SATELLITE | add capsules | add lifecycle environments to capsules
+  shell: "hammer capsule content add-lifecycle-environment --name {{ item[0].capsule_name }}
+    --environment {{ item[0].capsule_lc }} --organization {{ item[0].capsule_org }}"
+  when: item[0].capsule_name == item[1].item.capsule_name and item[0].capsule_lc not in item[1].stdout
+  with_nested:
+    - "{{ capsule_servers }}"
+    - "{{ capsule_lifecycle_list.results }}"
+  tags:
+    - add_capsule
+    - satellite_config
+
+- name: SATELLITE | add capsules | Kick of sync on capsules
+  shell: "hammer capsule content synchronize --name {{ item.capsule_name }}"
+  async: 15
+  poll: 0 # fire and forget
+  with_items: "{{ capsule_servers }}"
+  tags:
+    - add_capsule
+    - satellite_config

@@ -1,0 +1,20 @@
+---
+tower_nodes:
+  - tower-node1
+  - tower-node2
+  - tower-node3
+
+tower_db_primary: tower-db-pri
+tower_db_secondary: tower-db-sec
+
+tower_isolated_nodes: true # true|false
+tower_isolated_groups:
+  dmz:
+    nodes:
+      - tower-isolated-node1
+
+tower_haproxy_pri: tower-haproxy-pri
+tower_haproxy_sec: tower-haproxy-sec
+vip_addresses:
+  - 192.168.122.220
+router_id: 51

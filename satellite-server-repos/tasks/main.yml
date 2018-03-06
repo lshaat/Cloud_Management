@@ -1,0 +1,29 @@
+---
+
+- name: Stop if we dont have the required variables
+  fail:
+    msg: Computer says no. This role needs 'satellite_deployment_organization', and 'satellite_deployment_repositories' vars to be set.
+  when: >
+      ( satellite_deployment_organization is undefined )
+      or ( satellite_deployment_repositories is undefined )
+
+- name: SATELLITE | repositories | get a list of enalbed repos
+  shell: "hammer repository list --organization {{ satellite_deployment_organization }}"
+  changed_when: false
+  register: sat_repo_list
+  tags:
+    - satellite_config
+    - satellite_deployment_repositories
+
+- name: "SATELLITE | post-install | enable repos"
+  shell: "hammer repository-set '{{ item.state }}' --organization
+    '{{ satellite_deployment_organization }}'
+    --product '{{ item.product_name }}' --name '{{ item.name_repo }}'
+    {% if item.rel is defined %} --releasever '{{ item.rel }}' {% endif %}
+    --basearch '{{ item.architecture}}'"
+  with_items: "{{ satellite_deployment_repositories }}"
+  when: item.product_name not in sat_repo_list.stdout
+  tags:
+    - satellite_config
+    - satellite_deployment_repositories
+

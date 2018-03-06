@@ -1,0 +1,54 @@
+---
+- name: CFME | VMDB | check what physical disks exist
+  command: pvs --all
+  changed_when: false
+  register: pv_list
+  tags:
+    - cfme_vmdb
+
+- name: CFME | VMDB | bail out if our target disk is not available
+  fail:
+    msg: "Computer says NO! Cannot find target disk for satellite installation. Check yo 'cfme_db_pv_name' variable"
+  when: cfme_db_pv_name not in pv_list.stdout
+  tags:
+    - cfme_vmdb
+
+- name: CFME | VMDB | configure appliance for remote database
+  block:
+
+  - name: CFME | VMDB | set fact for primary database appliance ip
+    set_fact: cfme_vmdb_pri_ip={{ hostvars[groups['cfme_vmdb_pri'][0]]['ansible_eth0']['ipv4']['address'] }}
+    tags:
+      - cfme_db
+
+  - name: CFME | VMDB | set fact for secondary database appliance ip
+    set_fact: cfme_vmdb_sec_ip={{ hostvars[groups['cfme_vmdb_sec'][0]]['ansible_eth0']['ipv4']['address'] }}
+    tags:
+      - cfme_db
+
+  - name: CFME | VMDB Replication | fetch remote encryption key
+    shell: >
+      appliance_console_cli
+      --fetch-key={{ cfme_vmdb_pri_ip }}
+      --sshlogin=root
+      --sshpassword={{ cfme_root_pass }}
+    changed_when: false
+    tags:
+      - cfme_db
+
+  - name: CFME | VMDB Replication | connect to primary and configure failover
+    command: >
+      appliance_console_cli
+      --replication=standby
+      --dbdisk={{ cfme_db_pv_name }}
+      --cluster-node-number={{ cfme_sec_db_id }}
+      --primary-host={{ cfme_vmdb_pri_ip }}
+      --standby-host={{ cfme_vmdb_sec_ip }}
+      --password={{ cfme_db_pass }}
+      --auto-failover
+      --region={{ cfme_region }}
+    args:
+      chdir: /etc
+      creates: repmgr.conf
+    tags:
+     - cfme_vmdb

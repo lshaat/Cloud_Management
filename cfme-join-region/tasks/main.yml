@@ -1,0 +1,31 @@
+---
+
+- name: CFME | join | configure appliance for remote database
+  block:
+
+  - name: CFME | join | set fact for the primary database ip address        
+    set_fact: cfme_vmdb_pri_ip={{ hostvars[groups['cfme_vmdb_pri'][0]]['ansible_eth0']['ipv4']['address'] }}
+    tags:
+      - cfme_db
+
+  - name: CFME | join | fetch remote encryption key
+    shell: >
+      appliance_console_cli
+      --fetch-key={{ cfme_vmdb_pri_ip }}
+      --sshlogin=root
+      --sshpassword={{ cfme_root_pass }}
+    changed_when: false
+    tags:
+      - cfme_db
+
+  - name: CFME | join | connect to external region in database
+    shell: >
+      appliance_console_cli
+      --hostname={{ cfme_vmdb_pri_ip }}
+      --username={{ cfme_db_user }}
+      --password={{ cfme_db_pass }}
+    args:
+      chdir: /var/www/miq/vmdb
+      creates: REGION
+    tags:
+      - cfme_db

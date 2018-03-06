@@ -1,0 +1,71 @@
+---
+
+- name: SATELLITE | epel | grab a list of gpg keys
+  shell: "hammer --csv gpg list --organization {{ satellite_deployment_organization}}
+    |grep -v ID |awk -F , '{print $2}'"
+  register: gpg_list
+  changed_when: false
+  tags:
+    - satellite_config
+    - epel_repo
+
+- name: SATELLITE | epel | download gpg key
+  get_url:
+    url: "{{ epel_repo_gpg_key_url }}" 
+    dest: /tmp/.epel_gpg.key
+  tags:
+    - satellite_config
+    - epel_repo
+  when: gpg_list.stdout.find('EPEL') == -1 
+
+- name: SATELLITE | epel | create epel gpg key
+  shell: "hammer gpg create --key /tmp/.epel_gpg.key --name EPEL 
+    --organization {{ satellite_deployment_organization }}"
+  when: gpg_list.stdout.find('EPEL') == -1           
+  tags:
+    - satellite_config
+    - epel_repo
+
+- name: SATELLITE | epel | remove temp file
+  file:
+    path: /tmp/.epel_gpg.key
+    state: absent
+  when: gpg_list.stdout.find('EPEL') == -1           
+  tags:
+    - satellite_config
+    - epel_repo
+
+- name: SATELLITE | epel | grab a list of products
+  shell: "hammer --csv product list --organization {{ satellite_deployment_organization}}
+    --enabled yes |grep -v ID |awk -F , '{print $2}'"
+  register: product_list
+  changed_when: false
+  tags:
+    - satellite_config
+    - epel_repo
+
+- name: SATELLITE | epel | create EPEL product
+  shell: "hammer product create --gpg-key EPEL --name EPEL --label EPEL
+    --organization {{ satellite_deployment_organization}}"
+  when: product_list.stdout.find('EPEL') == -1
+  tags:
+    - satellite_config
+    - epel_repo
+
+- name: SATELLITE | epel | grab a list of repositories in the EPEL product
+  shell: hammer repository list --organization-id 1 --product EPEL
+  changed_when: false
+  register: epel_repo_list
+  tags:
+    - satellite_config
+    - epel_repo
+
+- name: SATELLITE | epel | create EPEL repository
+  shell: "hammer repository create --organization {{ satellite_deployment_organization }} 
+    --name EPEL --gpg-key EPEL --label EPEL --product EPEL --content-type yum 
+    --url http://fedora.mirror.serversaustralia.com.au/epel/7/x86_64/"
+  when: epel_repo_list.stdout.find('EPEL') == -1
+  tags:
+    - satellite_config
+    - epel_repo
+

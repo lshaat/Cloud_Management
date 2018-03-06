@@ -1,0 +1,41 @@
+---
+
+- name: SATELLITE | capsule certs | generate satellite signed cert for each capsule
+  shell: "katello-ssl-tool --gen-server --set-hostname {{ hostvars [item]['ansible_fqdn'] }}
+    --server-cert /root/sat_cert/{{ hostvars [item]['ansible_fqdn'] }}_custom-cert.crt
+    --server-cert-req /root/sat_cert/{{ hostvars [item]['ansible_fqdn'] }}_custom-cert.crt.req
+    --server-key /root/sat_cert/{{ hostvars [item]['ansible_fqdn'] }}_custom-cert.key --set-cname {{ hostvars [item]['vip_fqdn'] }}
+    -p file:/etc/pki/katello/private/katello-default-ca.pwd
+    --ca-cert /root/ssl-build/katello-default-ca.crt --ca-key /root/ssl-build/katello-default-ca.key"
+  with_items: "{{ groups['satellite_capsules'] }}"
+  args:
+    chdir: /root
+    creates: "/root/ssl-build/{{ hostvars [item]['ansible_fqdn'] }}/{{ hostvars [item]['ansible_fqdn'] }}_custom-cert.crt"
+  tags:
+    - satellite_config
+    - capsule_certs
+
+- name: SATELLITE | capsule certs | generate the tar file for each capsule
+  shell: "capsule-certs-generate --capsule-fqdn {{ hostvars [item]['ansible_fqdn'] }}
+    --certs-tar /tmp/{{ hostvars [item]['ansible_fqdn'] }}-certs.tar
+    --server-cert /root/ssl-build/{{ hostvars [item]['ansible_fqdn'] }}/{{ hostvars [item]['ansible_fqdn'] }}_custom-cert.crt
+    --server-cert-req /root/ssl-build/{{ hostvars [item]['ansible_fqdn'] }}/{{ hostvars [item]['ansible_fqdn'] }}_custom-cert.crt.req
+    --server-key /root/ssl-build/{{ hostvars [item]['ansible_fqdn'] }}/{{ hostvars [item]['ansible_fqdn'] }}_custom-cert.key
+    --server-ca-cert /root/ssl-build/katello-default-ca.crt --certs-update-server"
+  with_items: "{{ groups['satellite_capsules'] }}"
+  args:
+    chdir: /tmp
+    creates: "{{ hostvars [item]['ansible_fqdn'] }}-certs.tar"
+  tags:
+    - satellite_config
+    - capsule_certs
+
+- name: SATELLITE | capsule certs | grab the capsule certs
+  fetch:
+    src: "/tmp/{{ hostvars [item]['ansible_fqdn'] }}-certs.tar"
+    dest: "/tmp/{{ hostvars [item]['ansible_fqdn'] }}-certs.tar"
+    flat: yes
+  with_items: "{{ groups['satellite_capsules'] }}"
+  tags:
+    - satellite_config
+    - capsule_certs

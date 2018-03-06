@@ -1,0 +1,17 @@
+---
+# Variables listed here are applicable to all host groups
+
+sat_activation_key: akcv_rhel7_sandpit
+sat_org_id: 1
+sat_server: satellite
+
+ntp_servers:
+  - 0.rhel.pool.ntp.org
+  - 1.rhel.pool.ntp.org
+  - 2.rhel.pool.ntp.org
+  - 3.rhel.pool.ntp.org
+
+dns_servers:
+ - 192.168.122.1
+
+dns_search: nat

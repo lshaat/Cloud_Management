@@ -1,0 +1,39 @@
+---
+
+- name: SATELLITE | docker | grab a list of products
+  shell: "hammer --csv product list --organization {{ satellite_deployment_organization}}
+    --enabled yes |grep -v ID |awk -F , '{print $2}'"
+  register: product_list
+  changed_when: false
+  tags:
+    - satellite_config
+    - docker_products
+
+- name: SATELLITE | docker | create products
+  shell: "hammer product create --organization {{ satellite_deployment_organization }} --name {{ item.product_name }}"
+  with_items: "{{ satellite_docker_products }}"
+  when: item.product_name not in product_list.stdout
+  tags:
+    - satellite_config
+    - docker_products
+
+- name: SATELLITE | docker | grab a list of repositories
+  shell: "hammer repository list --organization {{ satellite_deployment_organization }} 
+    --content-type docker"
+  changed_when: false
+  register: docker_repo_list
+  tags:
+    - satellite_config
+    - docker_products
+
+- name: SATELLITE | docker | create repositories
+  shell: "hammer repository create --organization {{ satellite_deployment_organization }}
+    --product {{ item.0.product_name }} --content-type docker --url {{ item.0.repository_url }}
+    --docker-upstream-name {{ item.1.name }} --name {{ item.1.name }}"
+  when: item.1.name not in docker_repo_list.stdout
+  with_subelements:
+    - "{{ satellite_docker_products }}"
+    - repositories
+  tags:
+    - satellite_config
+    - docker_products

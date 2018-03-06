@@ -1,0 +1,88 @@
+---
+
+- name: TOWER | configure | add license
+  uri:
+    url: "https://{{ inventory_hostname }}/api/v1/config/"
+    method: POST
+    validate_certs: no
+    user: admin
+    password: "{{ vault_tower_pass }}"
+    status_code: 200
+    body: "{{ vault_tower_lic }}"
+    body_format: json
+  tags:
+    - tower_config
+    - tower_license 
+
+- name: TOWER | configure | Check if /etc/tower exists
+  stat:
+    path: /etc/tower
+  register: etc_tower
+  tags:
+    - tower_config
+
+- name: TOWER | configure | push out tower certs
+  copy:
+    src: "{{ item }}"
+    dest: "/etc/tower/{{ item }}"
+    mode: 0644
+    group: root
+    owner: root
+  with_items:
+  - tower.cert
+  - tower.key
+  notify: restart tower
+  when: etc_tower.stat.exists == True
+  tags:
+    - tower_config
+    - tower_certs
+
+- name: TOWER | configure | Enable EPEL Repository
+  yum:
+    name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    state: present
+  tags:
+    - tower_config
+
+- name: TOWER | configure | Make sure pip is installed - CentOS
+  yum:
+    name: python-pip
+    state: latest
+  when: ansible_distribution == 'CentOS'
+  tags:
+    - tower_config
+
+- name: TOWER | configure | Make sure pip is installed - RedHat
+  yum:
+    name: python2-pip
+    state: latest
+  when: ansible_distribution == 'RedHat' 
+  tags:
+    - tower_config
+
+- name: TOWER | configure | install ansible-tower-cli
+  pip:
+    name: ansible-tower-cli
+  tags:
+    - tower_config
+    - tower_cli
+
+- name: TOWER | configure | copy tower-cli config /etc/tower/tower_cli.cfg
+  template:
+    src: templates/tower_cli.cfg.j2
+    dest: /etc/tower/tower_cli.cfg
+    mode: 0600
+  tags:
+    - tower_config
+    - tower_cli
+
+- name: TOWER | configure | link /root/.tower_cli.cfg to /etc/tower/tower_cli.cfg
+  file:
+    src: /etc/tower/tower_cli.cfg
+    dest: /root/.tower_cli.cfg
+    owner: root
+    group: root
+    state: link
+  tags:
+    - tower_config
+    - tower_cli

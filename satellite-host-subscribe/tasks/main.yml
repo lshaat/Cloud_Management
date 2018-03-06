@@ -1,0 +1,26 @@
+---
+
+- name: Stop if we dont have the required variables
+  fail:
+    msg: Computer says no. This role needs 'sat_server','sat_activation_key' and 'sat_org_id' vars to be set.
+  when: >
+      ( sat_activation_key is undefined )
+      or ( sat_org_id is undefined )
+      or ( sat_server is undefined )
+
+- name: install the katello rpm from the satellite server
+  yum:
+    name: "http://{{ sat_server }}/pub/katello-ca-consumer-latest.noarch.rpm"
+    state: present
+
+- name: Stop of we are not running on CentOS or RHEL
+  fail:
+    msg: Computer says no. This role is intended for CentOS or RHEL.
+  when: ansible_distribution != 'CentOS' or ansible_distribution != 'RedHat'
+
+- name: Register with activationkey and consume subscriptions matching Red Hat Enterprise Server
+  redhat_subscription:
+    state: present
+    activationkey: "{{ sat_activation_key }}"
+    org_id: "{{ sat_org_id }}"
+    pool: '^Red Hat Enterprise Server$'

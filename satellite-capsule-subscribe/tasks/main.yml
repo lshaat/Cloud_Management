@@ -1,0 +1,43 @@
+---
+
+- set_fact: satellite_server={{ hostvars[groups['satellite_server'][0]]['ansible_hostname']}}
+  tags:
+    - capsule_subscribe
+    - capsule_install
+
+- name: SATELLITE | capsule Stop if we dont have the required variables
+  fail:
+    msg: Computer says no. This role needs 'sat_server','sat_activation_key' and 'sat_org_id' vars to be set.
+  when: >
+      ( sat_activation_key is undefined )
+      or ( sat_org_id is undefined )
+  tags:
+    - capsule_subscribe
+    - capsule_install
+
+- name: SATELLITE | capsule | install the katello rpm from the satellite server
+  yum:
+    name: "http://{{ satellite_server }}/pub/katello-ca-consumer-latest.noarch.rpm"
+    state: present
+  tags:
+   - capsule_subscribe
+   - capsule_install
+
+- name: SATELLITE | capsule | Register with activationkey
+  redhat_subscription:
+    state: present
+    activationkey: "{{ capsule_activation_key }}"
+    org_id: "{{ satellite_deployment_organization }}"
+    autosubscribe: yes
+  register: capsule_registration
+  tags:
+  - capsule_subscribe
+  - capsule_install
+
+- name: SATELLITE | registration |Disable existing repositories
+  command: subscription-manager repos --disable "*"
+  when: capsule_registration.changed
+
+- name: SATELLITE | registration | Configure repository subscriptions
+  command: "subscription-manager repos --enable={{ item }}"
+  with_items: "{{ capsule_server_repos }}"

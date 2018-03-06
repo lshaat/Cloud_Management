@@ -1,0 +1,27 @@
+vrrp_instance V1_1 {
+	interface eth0
+	state {{ vrrp_state }}
+	virtual_router_id {{ router_id }}
+{% if vrrp_state == 'MASTER' %}
+  unicast_src_ip {{ hostvars[primary_capsule]['ansible_eth0']['ipv4']['address'] }}
+  unicast_peer {
+	  {{ hostvars[standby_capsule]['ansible_eth0']['ipv4']['address'] }}
+  }
+{% elif vrrp_state == 'BACKUP' %}
+unicast_src_ip {{ hostvars[standby_capsule]['ansible_eth0']['ipv4']['address'] }}
+unicast_peer {
+	{{ hostvars[primary_capsule]['ansible_eth0']['ipv4']['address'] }}
+}
+{% endif %}
+{% if vrrp_state == 'MASTER' %}
+	priority 101
+{% elif vrrp_state == 'BACKUP' %}
+	priority 100
+{% endif %}
+	virtual_ipaddress {
+		{{ vip_address }}
+  }
+	track_script {
+		chk_katello
+	}
+}

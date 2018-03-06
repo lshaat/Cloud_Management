@@ -1,0 +1,42 @@
+---
+
+satellite_docker_products:
+  - product_name: OSP12_Containers
+    repository_url: https://registry.access.redhat.com
+    repositories:
+      - name: rhosp12/openstack-base
+      - name: rhosp12/openstack-aodh-api
+      - name: rhosp12/openstack-aodh-evaluator
+      - name: rhosp12/openstack-aodh-listener
+      - name: rhosp12/openstack-aodh-notifier
+      - name: rhosp12/openstack-ceilometer-central
+      - name: rhosp12/openstack-ceilometer-compute
+      - name: rhosp12/openstack-ceilometer-notification
+      - name: rhosp12/openstack-cron
+      - name: rhosp12/openstack-glance-api
+      - name: rhosp12/openstack-gnocchi-api
+      - name: rhosp12/openstack-gnocchi-metricd
+      - name: rhosp12/openstack-gnocchi-statsd
+      - name: rhosp12/openstack-haproxy
+      - name: rhosp12/openstack-heat-api-cfn
+      - name: rhosp12/openstack-heat-api
+      - name: rhosp12/openstack-heat-engine
+      - name: rhosp12/openstack-horizon
+      - name: rhosp12/openstack-keystone
+      - name: rhosp12/openstack-mariadb
+      - name: rhosp12/openstack-memcached
+      - name: rhosp12/openstack-nova-api
+      - name: rhosp12/openstack-nova-compute
+      - name: rhosp12/openstack-nova-conductor
+      - name: rhosp12/openstack-nova-consoleauth
+      - name: rhosp12/openstack-nova-libvirt
+      - name: rhosp12/openstack-nova-novncproxy
+      - name: rhosp12/openstack-nova-placement-api
+      - name: rhosp12/openstack-nova-scheduler
+      - name: rhosp12/openstack-panko-api
+      - name: rhosp12/openstack-rabbitmq
+      - name: rhosp12/openstack-redis
+      - name: rhosp12/openstack-swift-account
+      - name: rhosp12/openstack-swift-container
+      - name: rhosp12/openstack-swift-object
+      - name: rhosp12/openstack-swift-proxy-server

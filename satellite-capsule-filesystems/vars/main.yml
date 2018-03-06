@@ -1,0 +1,27 @@
+---
+
+vg_name: satellite_vg
+pe_size: 512
+pv_name: /dev/vdb
+
+satellite_volumes:
+    mongodb:
+      lv_name: mongodb_lv
+      mount_point: /var/lib/mongodb
+      size_gb: 10
+      fs_type: xfs
+    psql:
+      lv_name: psql_lv
+      mount_point: /var/lib/pgsql
+      size_gb: 20 
+      fs_type: xfs
+    pulp:
+      lv_name: pulp_lv
+      mount_point: /var/lib/pulp
+      size_gb: 100 
+      fs_type: xfs
+    cache:
+      lv_name: cache_lv
+      mount_point: /var/cache/pulp
+      size_gb: 10
+      fs_type: xfs

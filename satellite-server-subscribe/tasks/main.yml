@@ -1,0 +1,45 @@
+---
+
+- name: SATELLITE | registration | Stop if we dont have the required variables
+  fail:
+    msg: Computer says no. This role needs 'vault_rhn_user' and 'vault_rhn_pass' vars to be set.
+  when: >
+      ( vault_rhn_user is undefined )
+      or ( vault_rhn_pass is undefined )
+
+- name: SATELLITE | registration | Stop of we are not running on RHEL
+  fail:
+    msg: Computer says no. This role is intended for RHEL.
+  when: ansible_os_family != 'RedHat'
+
+- name: SATELLITE | registration | Check subscription status
+  command: subscription-manager status
+  register: subscription_manager_status
+  changed_when: false
+  failed_when: false
+
+- name: SATELLITE | registration | Register to RHN and attach Satellite Subscription
+  redhat_subscription:
+    state: present
+    username: "{{ vault_rhn_user }}"
+    password: "{{ vault_rhn_pass }}"
+    pool_ids: "{{ item }}"
+    autosubscribe: true
+  register: satellite_registration
+  when: subscription_manager_status.rc > 0
+  with_items: "{{ satellite_rhn_pool_ids }}"
+
+- name: SATELLITE | registration |Disable existing repositories
+  command: subscription-manager repos --disable "*"
+  when: satellite_registration.changed
+
+- name: SATELLITE | registration | Configure repository subscriptions
+  command: "subscription-manager repos --enable={{ item }}"
+  with_items: "{{ satellite_server_repos }}"
+
+  # Custom module redhat_repos seems to be broken, will switch to the below once it's fixed
+  #- name: SATELLITE | registration | Configure repository subscriptions
+  #  redhat_repos:
+  #    repos: "{{ item }}"
+  #    state: enabled
+  #  with_items: "{{ satellite_server_repos }}"

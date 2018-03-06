@@ -1,0 +1,16 @@
+---
+
+# OS
+cfme_root_pass: "{{ vault_cfme_pass }}"
+
+# Database
+cfme_db_user: root
+cfme_db_pass: "{{ vault_cfme_pass }}"
+cfme_pri_db_id: 100
+cfme_sec_db_id: 200
+cfme_region: 99
+
+# General
+cfme_company: 'ACME'
+cfme_support_url: 'www.redhat.com'
+cfme_login_text: 'Welcome to ACME Cloudforms'

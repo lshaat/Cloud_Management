@@ -1,0 +1,16 @@
+---
+
+capsule_activation_key: ak_cv_rhel7_production
+
+capsule_configure_firewall: false # true|false
+
+oauth_consumer_key: "{{ vault_oauth_consumer_key }}"
+oauth_consumer_secret: "{{ vault_oauth_consumer_secret }}"
+oauth_secret: "{{ vault_oauth_secret }}"
+
+capsule_server_repos:
+  - rhel-7-server-rpms
+  - rhel-7-server-satellite-capsule-6.2-rpms
+
+capsule_servers:
+  - { capsule_name: 'capsule-pri.nat', capsule_org: 'org_Telstra_Media_Networks', capsule_lc: 'env_Production', capsule_loc: 'loc_StLeonards_Prod' }

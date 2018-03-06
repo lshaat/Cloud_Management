@@ -1,0 +1,49 @@
+---
+
+- name: CFME | VMDB | check what physical disks exist
+  command: pvs --all
+  changed_when: false
+  register: pv_list
+  tags:
+    - cfme_vmdb
+
+- name: CFME | VMDB | bail out if our target disk is not available
+  fail:
+    msg: "Computer says NO! Cannot find target disk for satellite installation. Check yo 'cfme_db_pv_name' variable"
+  when: cfme_db_pv_name not in pv_list.stdout
+  tags:
+    - cfme_vmdb
+
+- name: CFME | VMDB | set ansible fact for primary database ip 
+  set_fact: cfme_vmdb_pri_ip={{ hostvars[groups['cfme_vmdb_pri'][0]]['ansible_eth0']['ipv4']['address'] }}
+  tags:
+    - cfme_vmdb
+
+- name: CFME | VMDB | configure primary database and region
+  shell: >
+    appliance_console_cli
+    --internal
+    --username={{ cfme_db_user }}
+    --password={{ cfme_db_pass }}
+    --region={{ cfme_region }}
+    --dbdisk={{ cfme_db_pv_name }}
+  args:
+    chdir: /var/www/miq/vmdb
+    creates: config/database.yml
+  tags:
+    - cfme_vmdb
+
+- name: CFME | VMDB | configure primary database for replication
+  shell: >
+    appliance_console_cli 
+    --replication=primary 
+    --cluster-node-number={{ cfme_pri_db_id }}
+    --primary-host={{ cfme_vmdb_pri_ip }}
+    --password={{ cfme_db_pass }}
+    --auto-failover 
+    --region={{ cfme_region }}
+  args:
+    chdir: /etc
+    creates: repmgr.conf
+  tags:
+    - cfme_vmdb

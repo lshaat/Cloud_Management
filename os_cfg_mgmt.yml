@@ -1,0 +1,33 @@
+---
+
+- name: Set DNS and hostname correctly before doing anything else 
+  hosts: all
+  become: true
+  become_user: root
+  roles:
+    - os-hostname
+    - os-dns
+
+- name: Subscribe hosts to satellite
+  hosts: all:!satellite_server
+  become: true
+  become_user: root
+  roles:
+          #    - satellite-host-subscribe
+
+- name: Apply common configuration to the nodes and install base packages
+  hosts: all
+  become: true
+  become_user: root
+  roles:
+#  - os-packages
+#  - os-auditd
+    - os-local-users
+    - os-logrotate
+    - os-nmon
+      #    - os-ntp
+    - os-pwquality
+    - os-sshd
+    - os-sudoers
+    - os-timezone
+    - os-motd

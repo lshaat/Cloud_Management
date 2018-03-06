@@ -1,0 +1,26 @@
+---
+
+- name: CFME | generic | set ems attributes
+  manageiq_config:
+    name: ems 
+    value:
+      name: "{{ inventory_hostname }}"
+      role: "{{ cfme_roles }}"
+      custom_support_url: "{{ cfme_support_url }}"
+  notify: restart evmserverd
+  tags:
+    - generic 
+
+- name: CFME | generic | set server attributes
+  manageiq_config:
+    name: server 
+    value:
+      name: "{{ inventory_hostname }}"
+      company: "{{ cfme_company }}"
+      zone: "{{ cfme_zone }}"
+      timezone: Melbourne
+      use_custom_login_text: true
+      custom_login_text: "{{ cfme_login_text }}"
+  notify: restart evmserverd 
+  tags: 
+    - generic

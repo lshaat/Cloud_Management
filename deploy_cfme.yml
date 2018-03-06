@@ -1,0 +1,55 @@
+---
+- name: CFME | Perform base OS Configuration
+  hosts: cfme_vmdb_pri,cfme_vmdb_sec,cfme_app
+  become: true
+  vars_files:
+    - "group_vars/cloudforms"
+    - "group_vars/vault"
+  roles:
+#    - satellite-host-subscribe
+    - os-hostname
+    - os-dns
+#    - os-packages
+    - os-nmon
+    - os-ntp
+    - os-timezone
+    - os-sshd
+
+- name: CFME | Setup primary DB
+  hosts: cfme_vmdb_pri
+  become: true
+  gather_facts: false
+  vars_files:
+    - "group_vars/cloudforms"
+    - "group_vars/vault"
+  roles:
+    - cfme-pri-db-create 
+
+- name: CFME | Join Non Database appliances to the region
+  hosts: cfme_app
+  become: true
+  gather_facts: false
+  vars_files:
+    - "group_vars/cloudforms"
+    - "group_vars/vault"
+  roles:
+    - cfme-join-region
+
+- name: CFME | Setup database replication
+  hosts: cfme_vmdb_sec
+  become: true
+  vars_files:
+    - "group_vars/cloudforms"
+    - "group_vars/vault"
+  roles:
+    - cfme-sec-db-create
+
+- name: CFME | perform generic configuration on the appliances
+  hosts: cfme_vmdb_pri,cfme_app
+  become: true
+  gather_facts: false
+  vars_files:
+    - "group_vars/cloudforms"
+    - "group_vars/vault"
+  roles:
+    - cfme-generic
